@@ -1,35 +1,60 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState, useEffect } from 'react'
+import TemperatureGauge from './components/TemperatureGauge';
+import LineChart from './components/LineChart';
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [temperatureData, setTemperatureData] = useState([]);
+
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:5001");
+
+    ws.onopen = () => {
+    console.log("Conectado a websocket");
+
+    ws.onmessage = (event) => {
+      const newData = JSON.parse(event.data);
+      setTemperatureData((prevData) => [...prevData, { timestamp: newData.timestamp, value: newData.temperature }]);
+      console.log(newData)
+    };
+
+    return () => {
+      if(ws.readyState === WebSocket.OPEN) {
+        ws.close();
+        console.log("Conexión cerrada de websocket");
+      }
+    };
+  };
+  }, []);
+
+  const latest = temperatureData.length > 0 ? temperatureData[temperatureData.length - 1] : null;
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="container">
+      <header>
+        <h1>Sensor de Temperatura</h1>
+      </header>
+
+      <div className="sensor-data">
+        <div className="sensor-data-item">
+          <h2>Timestamp</h2>
+          <p>{latest?.timestamp ?? '—'}</p>
+        </div>
+
+        <div className="sensor-data-item">
+          <h2>Temperature</h2>
+          <p>{latest ? `${latest.value} °C` : '—'}</p>
+          {latest && Number.isFinite(latest.value) && (
+            <TemperatureGauge value={latest.value} />
+          )}
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
+
+      <div className="charts">
+        <LineChart data={temperatureData} label="Temperature" />
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </div>
+  );
 }
 
 export default App
