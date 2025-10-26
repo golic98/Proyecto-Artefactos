@@ -11,15 +11,19 @@ void setup() {
 }
 
 void loop() {
-  float temperature = dht.readTemperature(); 
+  float temperature = dht.readTemperature();
 
   if (isnan(temperature)) {
-    Serial.println("Failed to read from DHT sensor!");
+    Serial.println("{\"error\":\"Failed to read from DHT sensor\"}");
   } else {
-    
-    Serial.print("Temperature: ");
-    Serial.println(temperature);
+    // Enviamos JSON simple: {"temperature":32.40,"timestamp":123456}
+    Serial.print("{\"temperature\":");
+    Serial.print(temperature, 2);
+    Serial.print(",\"timestamp\":");
+    Serial.print(millis()); // o puedes usar 0 o no enviar timestamp
+    Serial.println("}");
   }
 
   delay(5000);
 }
+
