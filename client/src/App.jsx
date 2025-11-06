@@ -1,60 +1,99 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import TemperatureGauge from './components/TemperatureGauge';
 import LineChart from './components/LineChart';
-import './App.css'
+import './App.css';
 
 function App() {
-  const [temperatureData, setTemperatureData] = useState([]);
+  const [rainData, setRainData] = useState([]);
+  const [ultrasonicData, setUltrasonicData] = useState([]);
+  const [dht22Data, setDht22Data] = useState([]);
+  const [relayState, setRelayState] = useState(null);
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:5001");
 
     ws.onopen = () => {
-    console.log("Conectado a websocket");
+      console.log("Conectado a WebSocket");
+    };
 
     ws.onmessage = (event) => {
-      const newData = JSON.parse(event.data);
-      setTemperatureData((prevData) => [...prevData, { timestamp: newData.timestamp, value: newData.temperature }]);
-      console.log(newData)
+      const data = JSON.parse(event.data);
+      console.log("Datos recibidos:", data);
+
+      if ('rain' in data) {
+        setRainData(prev => [...prev, { timestamp: data.timestamp, value: data.rain }]);
+      }
+      if ('distance' in data) {
+        setUltrasonicData(prev => [...prev, { timestamp: data.timestamp, value: data.distance }]);
+      }
+      if ('temperature' in data && 'humidity' in data) {
+        setDht22Data(prev => [...prev, {
+          timestamp: data.timestamp,
+          temperature: data.temperature,
+          humidity: data.humidity
+        }]);
+      }
+      if ('relay' in data) {
+        setRelayState(data.relay);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("Conexión WebSocket cerrada");
     };
 
     return () => {
-      if(ws.readyState === WebSocket.OPEN) {
-        ws.close();
-        console.log("Conexión cerrada de websocket");
-      }
+      if (ws.readyState === WebSocket.OPEN) ws.close();
     };
-  };
   }, []);
 
-  const latest = temperatureData.length > 0 ? temperatureData[temperatureData.length - 1] : null;
+  const latestRain = rainData.at(-1);
+  const latestDistance = ultrasonicData.at(-1);
+  const latestDht = dht22Data.at(-1);
 
   return (
     <div className="container">
       <header>
-        <h1>Sensor de Temperatura</h1>
+        <h1>Panel de Sensores</h1>
       </header>
 
-      <div className="sensor-data">
-        <div className="sensor-data-item">
-          <h2>Timestamp</h2>
-          <p>{latest?.timestamp ?? '—'}</p>
+      <div className="sensor-grid">
+
+        <div className="sensor-card">
+          <h2>Sensor de Lluvia</h2>
+          <p>Estado: {latestRain ? (latestRain.value ? 'Lluvia detectada' : 'Sin lluvia') : '—'}</p>
+          <LineChart data={rainData} label="Lluvia (1=Lluvia, 0=Seco)" />
         </div>
 
-        <div className="sensor-data-item">
-          <h2>Temperature</h2>
-          <p>{latest ? `${latest.value} °C` : '—'}</p>
-          {latest && Number.isFinite(latest.value) && (
-            <TemperatureGauge value={latest.value} />
-          )}
+        <div className="sensor-card">
+          <h2>Sensor Ultrasónico</h2>
+          <p>Distancia: {latestDistance ? `${latestDistance.value.toFixed(2)} cm` : '—'}</p>
+          <LineChart data={ultrasonicData} label="Distancia (cm)" />
         </div>
-      </div>
 
-      <div className="charts">
-        <LineChart data={temperatureData} label="Temperature" />
+        <div className="sensor-card">
+          <h2>Sensor DHT22</h2>
+          <p>Temperatura: {latestDht ? `${latestDht.temperature.toFixed(1)} °C` : '—'}</p>
+          <p>Humedad: {latestDht ? `${latestDht.humidity.toFixed(1)} %` : '—'}</p>
+          {latestDht && <TemperatureGauge value={latestDht.temperature} />}
+          <LineChart
+            data={dht22Data.map(d => ({ timestamp: d.timestamp, value: d.temperature }))}
+            label="Temperatura (°C)"
+          />
+          <LineChart
+            data={dht22Data.map(d => ({ timestamp: d.timestamp, value: d.humidity }))}
+            label="Humedad (%)"
+          />
+        </div>
+
+        <div className="sensor-card">
+          <h2>Relé 5VDC</h2>
+          <p>Estado: {relayState === null ? '—' : relayState ? 'Encendido' : 'Apagado'}</p>
+        </div>
+
       </div>
     </div>
   );
 }
 
-export default App
+export default App;

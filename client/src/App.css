@@ -1,42 +1,130 @@
-#root {
-  max-width: 1280px;
+/* ======== CONTENEDOR PRINCIPAL ======== */
+.container {
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 24px;
   text-align: center;
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: #0f0f10;
+  color: #eee;
+  font-family: "Inter", sans-serif;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* ======== ENCABEZADO ======== */
+header h1 {
+  font-size: 36px;
+  margin-bottom: 24px;
+  color: #fff;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+/* ======== REJILLA DE SENSORES ======== */
+.sensor-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* 1 columna en móviles */
+  gap: 32px;
+  margin-top: 20px;
+
+  /* 🔥 CENTRA LAS TARJETAS */
+  justify-content: center;   /* centra las columnas dentro del grid */
+  justify-items: center;     /* centra el contenido dentro de cada celda */
+}
+
+/* En pantallas grandes → dos columnas centradas */
+@media (min-width: 1200px) {
+  .sensor-grid {
+    grid-template-columns: repeat(2, 1fr);
+    justify-content: center; /* mantiene centrado el grid */
   }
-  to {
-    transform: rotate(360deg);
+}
+
+/* ======== TARJETAS DE SENSOR ======== */
+.sensor-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  /* 🔥 centrado de cada tarjeta */
+  width: 90%;
+  max-width: 500px;
+  margin: 0 auto; /* asegura el centrado si hay espacio sobrante */
+}
+
+.sensor-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* ======== TÍTULOS Y TEXTO ======== */
+.sensor-card h2 {
+  font-size: 22px;
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+.sensor-card p {
+  font-size: 18px;
+  margin: 6px 0 12px 0;
+  color: #ccc;
+}
+
+/* ======== GRÁFICOS ======== */
+.charts,
+.card-chart {
+  width: 100%;
+  display: flex;
+  justify-content: center; /* centra el gráfico dentro de la tarjeta */
+  margin-top: 12px;
+}
+
+.charts canvas,
+.charts svg,
+.card-chart canvas,
+.card-chart svg {
+  width: 95% !important;
+  height: 260px !important;
+}
+
+/* ======== RELÉ ======== */
+.relay-state {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.relay-on {
+  background: #0b6b3a;
+  color: #e8ffef;
+}
+.relay-off {
+  background: #6b0b0b;
+  color: #ffe8e8;
+}
+
+/* ======== RESPONSIVE ======== */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
   }
-}
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+  header h1 {
+    font-size: 28px;
   }
-}
 
-.card {
-  padding: 2em;
-}
+  .sensor-card h2 {
+    font-size: 20px;
+  }
 
-.read-the-docs {
-  color: #888;
+  .sensor-card p {
+    font-size: 16px;
+  }
+
+  .charts svg,
+  .charts canvas {
+    height: 220px !important;
+  }
 }

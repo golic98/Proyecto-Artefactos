@@ -1,4 +1,3 @@
-import React from "react";
 import { Gauge } from "@mui/x-charts";
 
 function TemperatureGauge({value}) {
