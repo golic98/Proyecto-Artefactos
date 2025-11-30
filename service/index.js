@@ -7,9 +7,10 @@ require('dotenv').config();
 
 const SERIAL_PORT = process.env.SERIAL_PORT || '/dev/ttyUSB0';
 const SERIAL_BAUD = Number(process.env.SERIAL_BAUD || 115200);
+const TANK_HEIGHT_CM = Number(process.env.TANK_HEIGHT_CM || 19.9); // altura total del tanque
+const TANK_EMPTY_MARGIN_CM = Number(process.env.TANK_EMPTY_MARGIN_CM || 1.0); // margen: si distancia >= height - margin => vacio
 const WS_PORT = Number(process.env.WS_PORT || 5001);
 const REOPEN_DELAY = 3000; // ms
-
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
@@ -39,6 +40,7 @@ const lastNotificationAt = {
   relay: 0,
   rain: 0,
   capacitivo: 0,
+  tank: 0
 };
 
 // estado previo para detectar cambios
@@ -237,7 +239,7 @@ function detectAndNotify(prev, curr) {
   if ('capacitivo_state' in curr || 'capacitivo' in curr) {
     const prevCapState = prev?.capacitivo_state ?? null;
     const currCapState = ('capacitivo_state' in curr) ? !!curr.capacitivo_state
-                         : (('capacitivo' in curr) ? (Number(curr.capacitivo) < 40) : null);
+      : (('capacitivo' in curr) ? (Number(curr.capacitivo) < 40) : null);
 
     if (prevCapState !== null && currCapState !== null && prevCapState !== currCapState) {
       if (now - lastNotificationAt.capacitivo > NOTIFY_COOLDOWN_MS) {
@@ -248,6 +250,44 @@ function detectAndNotify(prev, curr) {
         lastNotificationAt.capacitivo = now;
       }
     }
+  }
+}
+
+// Detecta tanque vacío a partir de la lectura 'distance' (cm)
+// Debe estar definida a nivel de módulo (no dentro de otra función)
+function detectTankEmpty(prev, curr) {
+  try {
+    if (!curr || !('distance' in curr)) return;
+
+    const now = Date.now();
+    const dist = Number(curr.distance); // distancia sensor->superficie
+    if (!Number.isFinite(dist)) return;
+
+    // Si la distancia es mayor o igual a (altura del tanque - margen) lo consideramos VACIO
+    const threshold = TANK_HEIGHT_CM - TANK_EMPTY_MARGIN_CM;
+    const isEmptyNow = dist >= threshold;
+
+    // estado previo (si existía)
+    const prevEmpty = (prev && ('distance' in prev)) ? (Number(prev.distance) >= threshold) : null;
+
+    // si prevEmpty es null (no teníamos lectura previa) no notificamos la primera vez
+    if (prevEmpty === null) {
+      return;
+    }
+
+    // si hubo cambio de estado y cooldown pasado -> notificar
+    if (prevEmpty !== isEmptyNow) {
+      if (now - lastNotificationAt.tank > NOTIFY_COOLDOWN_MS) {
+        const msg = isEmptyNow
+          ? `🚱 *Tanque vacío* detectado.\nDistancia medida: ${dist.toFixed(2)} cm\nHora: ${new Date(curr.timestamp).toLocaleString()}`
+          : `💧 *Tanque ya tiene agua*.\nDistancia medida: ${dist.toFixed(2)} cm\nHora: ${new Date(curr.timestamp).toLocaleString()}`;
+
+        sendTelegramMessage(msg);
+        lastNotificationAt.tank = now;
+      }
+    }
+  } catch (e) {
+    console.error('[NOTIFY] Error en detectTankEmpty:', e.message);
   }
 }
 
@@ -262,6 +302,13 @@ function handleNewNormalized(normalized, source = 'serial') {
     detectAndNotify(lastSentData, normalized);
   } catch (e) {
     console.error('[NOTIFY] Error en detectAndNotify:', e.message);
+  }
+
+  // detectar tanque vacío por ultrasonico
+  try {
+    detectTankEmpty(lastSentData, normalized);
+  } catch (e) {
+    console.error('[NOTIFY] Error en detectTankEmpty:', e.message);
   }
 
   // actualizar lastSentData

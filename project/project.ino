@@ -23,7 +23,7 @@ const int UMBRAL_PORC_HUMEDAD = 40;    // % por debajo de esto se considera "sec
 const unsigned long TIEMPO_MAX_BOMBA_MS = 30000UL; // 30 s máxima corrida continua
 
 // Mediciones y limites del recipiente para la funcionalidad del ultrasonico.
-const float ALTURA_TANQUE_CM = 19.9;   // distancia del sensor al fondo del tanque (medir físicamente)
+const float ALTURA_TANQUE_CM = 10.5;   // distancia del sensor al fondo del tanque (medir físicamente)
 const float MIN_DISTANCIA_CM = 2.5;    // zona muerta del sensor (por debajo, no confiar)
 const int ULTRA_SAMPLES = 5;           // lecturas para promedio (>=3 recomendado)
 
